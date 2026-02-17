@@ -60,3 +60,6 @@ Route::middleware(['es_cliente'])->group(function () {
     Route::post('/obtener-ubicacion', [ProductosController::class, 'obtenerUbicacion']);
     Route::get('/productos', [ProductosController::class, 'index'])->name('productos.index');
 });
+
+
+//hjklñ{sdfghjkl}
