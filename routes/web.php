@@ -32,8 +32,6 @@ Route::middleware(['es_empleado'])->group(function () {
     Route::get('/admins/listado', [EmpleadosController::class, 'index']);
     Route::get('/admins/registro', [EmpleadosController::class, 'create']);
     Route::post('/admins/store', [EmpleadosController::class, 'store'])->name('empleados.store');
-    
-    
     Route::get('/admins/{id}/edit', [EmpleadosController::class, 'edit'])->name('empleados.edit');
     Route::put('/admins/{id}', [EmpleadosController::class, 'update'])->name('empleados.update');
 
