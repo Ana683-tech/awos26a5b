@@ -4,15 +4,20 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Cliente;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Validator;
 
 class ClientesController extends Controller
 {
     public function index(Request $request)
     {
         $clientes = Cliente::all();
+
+        $clientes->transform(function ($cliente) {
+            if ($cliente->imagen) {
+                $cliente->imagen = asset($cliente->imagen);
+            }
+            return $cliente;
+        });
 
         if ($request->wantsJson() || $request->is('api/*')) {
             return response()->json([
@@ -22,6 +27,45 @@ class ClientesController extends Controller
         }
 
         return view('administradores.listadocl', compact('clientes'));
+    }
+
+    // Método para cargar la vista de edición
+    public function edit($id)
+    {
+        $cliente = Cliente::find($id);
+
+        if (!$cliente) {
+            return redirect()->back()->with('error', 'Cliente no encontrado');
+        }
+
+        return view('administradores.formulario-editar-clien', compact('cliente'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->all();
+
+        if ($request->hasFile('imagen')) {
+            $file = $request->file('imagen');
+            $nombreLimpio = preg_replace('/[^A-Za-z0-9.\-]/', '_', $file->getClientOriginalName());
+            $nombreImagen = time().'_'.$nombreLimpio;
+            $file->move(public_path('imagenes/clientes'), $nombreImagen);
+            $data['imagen'] = 'imagenes/clientes/'.$nombreImagen;
+        }
+
+        $cliente = Cliente::create($data);
+
+        if ($request->wantsJson() || $request->is('api/*')) {
+            if ($cliente->imagen) {
+                $cliente->imagen = asset($cliente->imagen);
+            }
+            return response()->json([
+                'status' => true,
+                'data' => $cliente
+            ], 201);
+        }
+
+        return redirect('/client/listadocl')->with('success', 'Cliente registrado');
     }
 
     public function show($id)
@@ -35,125 +79,66 @@ class ClientesController extends Controller
             ], 404);
         }
 
+        if ($cliente->imagen) {
+            $cliente->imagen = asset($cliente->imagen);
+        }
+
         return response()->json([
             'status' => true,
             'data' => $cliente
         ], 200);
     }
 
-    public function store(Request $request)
-    {
-        if ($request->wantsJson() || $request->is('api/*')) {
-
-            $validator = Validator::make($request->all(), [
-                'nombre' => 'required|string|max:255',
-                'apellidos' => 'required|string|max:255',
-                'telefono' => 'required',
-                'email' => 'required|email|unique:clientes,email',
-                'usuario' => 'required|unique:clientes,usuario',
-                'contrasena' => 'required|min:4',
-                'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-        }
-
-        $cliente = new Cliente();
-        $cliente->nombre = $request->nombre ?? $request->nombres;
-        $cliente->apellidos = $request->apellidos;
-        $cliente->telefono = $request->telefono;
-        $cliente->email = $request->email ?? $request->correo;
-        $cliente->usuario = $request->usuario;
-        $cliente->contrasena = Hash::make($request->contrasena);
-
-        if ($request->hasFile('imagen')) {
-            $imagen = $request->file('imagen');
-            $nombreImagen = time().'_'.$imagen->getClientOriginalName();
-            $imagen->move(public_path('imagenes/clientes'), $nombreImagen);
-            $cliente->imagen = 'imagenes/clientes/'.$nombreImagen;
-        }
-
-        $cliente->save();
-
-        if ($request->wantsJson() || $request->is('api/*')) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Cliente creado correctamente',
-                'data' => $cliente
-            ], 201);
-        }
-
-        return redirect('/client/listadocl');
-    }
-
     public function update(Request $request, $id)
     {
-        $cliente = Cliente::findOrFail($id);
+        $cliente = Cliente::find($id);
 
-        if ($request->wantsJson() || $request->is('api/*')) {
-
-            $validator = Validator::make($request->all(), [
-                'email' => 'nullable|email|unique:clientes,email,'.$id,
-                'usuario' => 'nullable|unique:clientes,usuario,'.$id,
-                'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'errors' => $validator->errors()
-                ], 422);
+        if (!$cliente) {
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json(['status' => false, 'message' => 'No encontrado'], 404);
             }
+            return redirect()->back()->with('error', 'Cliente no encontrado');
         }
 
-        $cliente->nombre = $request->nombre;
-        $cliente->apellidos = $request->apellidos;
-        $cliente->telefono = $request->telefono;
-        $cliente->email = $request->email;
-        $cliente->usuario = $request->usuario;
-
-        if ($request->filled('contrasena')) {
-            $cliente->contrasena = Hash::make($request->contrasena);
-        }
+        $data = $request->all();
 
         if ($request->hasFile('imagen')) {
             if ($cliente->imagen && File::exists(public_path($cliente->imagen))) {
                 File::delete(public_path($cliente->imagen));
             }
 
-            $imagen = $request->file('imagen');
-            $nombreImagen = time().'_'.$imagen->getClientOriginalName();
-            $imagen->move(public_path('imagenes/clientes'), $nombreImagen);
-            $cliente->imagen = 'imagenes/clientes/'.$nombreImagen;
+            $file = $request->file('imagen');
+            $nombreLimpio = preg_replace('/[^A-Za-z0-9.\-]/', '_', $file->getClientOriginalName());
+            $nombreImagen = time().'_'.$nombreLimpio;
+            $file->move(public_path('imagenes/clientes'), $nombreImagen);
+            $data['imagen'] = 'imagenes/clientes/'.$nombreImagen;
         }
 
-        $cliente->save();
+        $cliente->update($data);
 
         if ($request->wantsJson() || $request->is('api/*')) {
+            if ($cliente->imagen) {
+                $cliente->imagen = asset($cliente->imagen);
+            }
             return response()->json([
                 'status' => true,
-                'message' => 'Cliente actualizado correctamente',
                 'data' => $cliente
             ], 200);
         }
 
-        return redirect('/client/listadocl');
+        return redirect('/client/listadocl')->with('success', 'Cliente actualizado');
     }
 
+    // ARREGLADO: Se añadió (Request $request) para que la variable exista
     public function destroy(Request $request, $id)
     {
         $cliente = Cliente::find($id);
 
         if (!$cliente) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Cliente no encontrado'
-            ], 404);
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json(['status' => false, 'message' => 'No encontrado'], 404);
+            }
+            return redirect()->back()->with('error', 'Cliente no encontrado');
         }
 
         if ($cliente->imagen && File::exists(public_path($cliente->imagen))) {
@@ -165,11 +150,10 @@ class ClientesController extends Controller
         if ($request->wantsJson() || $request->is('api/*')) {
             return response()->json([
                 'status' => true,
-                'message' => 'Cliente eliminado correctamente'
+                'message' => 'Cliente eliminado'
             ], 200);
         }
 
-        return redirect('/client/listadocl');
+        return redirect()->back()->with('success', 'Cliente eliminado');
     }
 }
-

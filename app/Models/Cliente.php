@@ -17,6 +17,7 @@ class Cliente extends Model
         'email',
         'usuario',
         'contrasena',
-        'imagen'
+        'imagen',
+        'estado'
     ];
 }

@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmpleadosController;
 
 use App\Http\Controllers\ProductosController;
-use App\Http\Controllers\ClientesController;
+use App\Http\Controllers\ClientesController;  
 
 
 // Esta sola línea crea rutas para:

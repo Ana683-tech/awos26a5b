@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Empleado;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Validator; // Necesario para validar
+use Illuminate\Support\Facades\Validator;
 
 class EmpleadosController extends Controller
 {
@@ -13,7 +13,13 @@ class EmpleadosController extends Controller
     {
         $empleados = Empleado::all();
 
-        // Si la petición viene de la API, devolvemos JSON
+        $empleados->transform(function ($empleado) {
+            if ($empleado->imagen) {
+                $empleado->imagen = asset($empleado->imagen);
+            }
+            return $empleado;
+        });
+
         if ($request->wantsJson() || $request->is('api/*')) {
             return response()->json($empleados, 200);
         }
@@ -23,134 +29,132 @@ class EmpleadosController extends Controller
         ]);
     }
 
-    // Nuevo método para la API: Mostrar un solo registro
-    public function show($id)
-    {
-        $empleado = Empleado::find($id);
-        if (!$empleado) {
-            return response()->json(['error' => 'No encontrado'], 404);
-        }
-        return response()->json($empleado, 200);
-    }
-
+    // Para "Nuevo Registro"
     public function create()
     {
-        return view('administradores.formulario-crear');
+        return view('administradores.formulario-crear'); 
     }
 
+    // Para "Editar Perfil"
     public function edit($id)
     {
         $empleado = Empleado::findOrFail($id);
-        return view('administradores.formulario-editar', [
-            'empleado' => $empleado 
-        ]);
+        return view('administradores.formulario-editar', compact('empleado'));
     }
 
     public function store(Request $request)
     {
-        // --- VALIDACIONES ---
         $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:255',
-            'apellido' => 'required|string|max:255',
-            'email' => 'required|email|unique:empleados,email',
-            'puesto' => 'required|string',
-            'usuario' => 'required|unique:empleados,usuario',
-            'contrasena' => 'required|min:4',
-            'salario' => 'required|numeric',
-            'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
+            'nombre' => 'required',
+            'apellido' => 'required',
+            'email' => 'required|email',
+            'puesto' => 'required',
+            'usuario' => 'required',
+            'contrasena' => 'required',
+            'salario' => 'required|numeric'
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json($validator->errors(), 400);
+            }
+            return redirect()->back()->withErrors($validator)->withInput();
         }
-        // --------------------
 
-        $empleado = new Empleado();
-        $empleado->nombre = $request->nombre;
-        $empleado->apellido = $request->apellido;
-        $empleado->email = $request->email;
-        $empleado->puesto = $request->puesto;
-        $empleado->usuario = $request->usuario;
-        $empleado->salario = $request->salario;
-        $empleado->contrasena = $request->contrasena;
-        $empleado->estado = 1;
+        $imagenPath = null;
 
         if ($request->hasFile('imagen')) {
-            $imagen = $request->file('imagen');
-            $nombreImagen = time() . '_' . $imagen->getClientOriginalName();
-            $imagen->move(public_path('imagenes/administradores'), $nombreImagen);
-            $empleado->imagen = 'imagenes/administradores/' . $nombreImagen;
+            $file = $request->file('imagen');
+            $nombreLimpio = preg_replace('/[^A-Za-z0-9.\-]/', '_', $file->getClientOriginalName());
+            $nombreImagen = time() . '_' . $nombreLimpio;
+            $file->move(public_path('imagenes/administradores'), $nombreImagen);
+            $imagenPath = 'imagenes/administradores/' . $nombreImagen;
         }
 
-        $empleado->save();
+        $empleado = Empleado::create([
+            'nombre' => $request->nombre,
+            'apellido' => $request->apellido,
+            'email' => $request->email,
+            'puesto' => $request->puesto,
+            'fecha_contratacion' => $request->fecha_contratacion,
+            'usuario' => $request->usuario,
+            'contrasena' => $request->contrasena,
+            'salario' => $request->salario,
+            'imagen' => $imagenPath,
+            'estado' => 1
+        ]);
 
-        // Respuesta para API
+        // RESPUESTA DINÁMICA: No afecta a Postman
         if ($request->wantsJson() || $request->is('api/*')) {
-            return response()->json(['message' => 'Creado con éxito', 'data' => $empleado], 201);
+            if ($empleado->imagen) {
+                $empleado->imagen = asset($empleado->imagen);
+            }
+            return response()->json($empleado, 201);
         }
 
-        return redirect('/admins/listado')->with('status', 'Administrador creado con éxito');
+        // Para el navegador: Redirigir al listado
+        return redirect('/admins/listado')->with('success', 'Empleado creado con éxito');
+    }
+
+    public function show($id)
+    {
+        $empleado = Empleado::find($id);
+
+        if (!$empleado) {
+            return response()->json(['error' => 'No encontrado'], 404);
+        }
+
+        if ($empleado->imagen) {
+            $empleado->imagen = asset($empleado->imagen);
+        }
+
+        return response()->json($empleado, 200);
     }
 
     public function update(Request $request, $id)
     {
-        $empleado = Empleado::findOrFail($id);
+        $empleado = Empleado::find($id);
 
-        // --- VALIDACIONES ---
-        $validator = Validator::make($request->all(), [
-            'email' => 'nullable|email|unique:empleados,email,' . $id . ',id_empleado',
-            'usuario' => 'nullable|unique:empleados,usuario,' . $id . ',id_empleado',
-            'salario' => 'nullable|numeric',
-            'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-        // --------------------
-
-        $empleado->nombre = $request->nombre;
-        $empleado->apellido = $request->apellido;
-        
-        if ($request->filled('email')) {
-            $empleado->email = $request->email;
-        }
-
-        $empleado->puesto = $request->puesto;
-        $empleado->usuario = $request->usuario;
-        $empleado->salario = $request->salario;
-        $empleado->estado = $request->estado; 
-
-        if ($request->filled('contrasena')) {
-            $empleado->contrasena = $request->contrasena;
+        if (!$empleado) {
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json(['error' => 'No encontrado'], 404);
+            }
+            return redirect()->back()->with('error', 'Empleado no encontrado');
         }
 
         if ($request->hasFile('imagen')) {
             if ($empleado->imagen && File::exists(public_path($empleado->imagen))) {
                 File::delete(public_path($empleado->imagen));
             }
-            $imagen = $request->file('imagen');
-            $nombreImagen = time() . '_' . $imagen->getClientOriginalName();
-            $imagen->move(public_path('imagenes/administradores'), $nombreImagen);
+
+            $file = $request->file('imagen');
+            $nombreLimpio = preg_replace('/[^A-Za-z0-9.\-]/', '_', $file->getClientOriginalName());
+            $nombreImagen = time() . '_' . $nombreLimpio;
+            $file->move(public_path('imagenes/administradores'), $nombreImagen);
             $empleado->imagen = 'imagenes/administradores/' . $nombreImagen;
         }
 
-        $empleado->save();
+        $empleado->update($request->except('imagen'));
 
-        // Respuesta para API
         if ($request->wantsJson() || $request->is('api/*')) {
-            return response()->json(['message' => 'Actualizado con éxito', 'data' => $empleado], 200);
+            if ($empleado->imagen) {
+                $empleado->imagen = asset($empleado->imagen);
+            }
+            return response()->json($empleado, 200);
         }
 
-        return redirect('/admins/listado')->with('status', 'Administrador actualizado');
+        return redirect('/admins/listado')->with('success', 'Empleado actualizado correctamente');
     }
 
-    // Nuevo método para la API: Eliminar
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $empleado = Empleado::find($id);
+
         if (!$empleado) {
-            return response()->json(['error' => 'No encontrado'], 404);
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json(['error' => 'No encontrado'], 404);
+            }
+            return redirect()->back()->with('error', 'Empleado no encontrado');
         }
 
         if ($empleado->imagen && File::exists(public_path($empleado->imagen))) {
@@ -158,6 +162,11 @@ class EmpleadosController extends Controller
         }
 
         $empleado->delete();
-        return response()->json(['message' => 'Eliminado con éxito'], 200);
+
+        if ($request->wantsJson() || $request->is('api/*')) {
+            return response()->json(['mensaje' => 'Empleado eliminado'], 200);
+        }
+
+        return redirect()->back()->with('success', 'Empleado eliminado');
     }
 }

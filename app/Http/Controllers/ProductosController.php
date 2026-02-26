@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Producto;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Http;
 
 class ProductosController extends Controller
 {
@@ -20,6 +18,16 @@ class ProductosController extends Controller
 
         $productos = $query->get();
 
+        $productos->transform(function ($producto) {
+            for ($i = 1; $i <= 3; $i++) {
+                $campo = 'imagen'.$i;
+                if ($producto->$campo) {
+                    $producto->$campo = asset($producto->$campo);
+                }
+            }
+            return $producto;
+        });
+
         if ($request->wantsJson() || $request->is('api/*')) {
             return response()->json([
                 'status' => true,
@@ -28,6 +36,40 @@ class ProductosController extends Controller
         }
 
         return view('administradores.productos', compact('productos'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->all();
+
+        for ($i = 1; $i <= 3; $i++) {
+            if ($request->hasFile('imagen'.$i)) {
+                $file = $request->file('imagen'.$i);
+                $nombreLimpio = preg_replace('/[^A-Za-z0-9.\-]/', '_', $file->getClientOriginalName());
+                $nombreImagen = time().'_'.$i.'_'.$nombreLimpio;
+                $file->move(public_path('imagenes/productos'), $nombreImagen);
+                $data['imagen'.$i] = 'imagenes/productos/'.$nombreImagen;
+            }
+        }
+
+        $producto = Producto::create($data);
+
+        // RESPUESTA DINÁMICA:
+        if ($request->wantsJson() || $request->is('api/*')) {
+            for ($i = 1; $i <= 3; $i++) {
+                $campo = 'imagen'.$i;
+                if ($producto->$campo) {
+                    $producto->$campo = asset($producto->$campo);
+                }
+            }
+            return response()->json([
+                'status' => true,
+                'data' => $producto
+            ], 201);
+        }
+
+        // Si es navegador, vuelve a la vista de productos
+        return redirect()->back()->with('success', 'Producto creado correctamente');
     }
 
     public function show($id)
@@ -41,153 +83,83 @@ class ProductosController extends Controller
             ], 404);
         }
 
+        for ($i = 1; $i <= 3; $i++) {
+            $campo = 'imagen'.$i;
+            if ($producto->$campo) {
+                $producto->$campo = asset($producto->$campo);
+            }
+        }
+
         return response()->json([
             'status' => true,
             'data' => $producto
         ], 200);
     }
 
-    public function store(Request $request)
-    {
-        if ($request->wantsJson() || $request->is('api/*')) {
-
-            $validator = Validator::make($request->all(), [
-                'nombre' => 'required|string|max:255',
-                'descripcion' => 'required|string',
-                'precio' => 'required|numeric',
-                'stock' => 'required|integer',
-                'imagen1' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-                'imagen2' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-                'imagen3' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-        }
-
-        $producto = new Producto();
-        $producto->nombre = $request->nombre;
-        $producto->descripcion = $request->descripcion;
-        $producto->precio = $request->precio;
-        $producto->stock = $request->stock;
-
-        for ($i = 1; $i <= 3; $i++) {
-            $campo = 'imagen'.$i;
-
-            if ($request->hasFile($campo)) {
-
-                if ($producto->$campo && File::exists(public_path($producto->$campo))) {
-                    File::delete(public_path($producto->$campo));
-                }
-
-                $imagen = $request->file($campo);
-                $nombreImagen = time()."_img{$i}_".$imagen->getClientOriginalName();
-                $imagen->move(public_path('imagenes/productos'), $nombreImagen);
-                $producto->$campo = 'imagenes/productos/'.$nombreImagen;
-            }
-        }
-
-        $producto->save();
-
-        if ($request->wantsJson() || $request->is('api/*')) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Producto creado correctamente',
-                'data' => $producto
-            ], 201);
-        }
-
-        return redirect('/produc/productos');
-    }
-
     public function update(Request $request, $id)
-    {
-        $producto = Producto::findOrFail($id);
-
-        if ($request->wantsJson() || $request->is('api/*')) {
-
-            $validator = Validator::make($request->all(), [
-                'precio' => 'nullable|numeric',
-                'stock' => 'nullable|integer',
-                'imagen1' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-                'imagen2' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-                'imagen3' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-        }
-
-        $producto->nombre = $request->nombre;
-        $producto->descripcion = $request->descripcion;
-        $producto->precio = $request->precio;
-        $producto->stock = $request->stock;
-
-        for ($i = 1; $i <= 3; $i++) {
-            $campo = 'imagen'.$i;
-
-            if ($request->hasFile($campo)) {
-
-                if ($producto->$campo && File::exists(public_path($producto->$campo))) {
-                    File::delete(public_path($producto->$campo));
-                }
-
-                $imagen = $request->file($campo);
-                $nombreImagen = time()."_img{$i}_".$imagen->getClientOriginalName();
-                $imagen->move(public_path('imagenes/productos'), $nombreImagen);
-                $producto->$campo = 'imagenes/productos/'.$nombreImagen;
-            }
-        }
-
-        $producto->save();
-
-        if ($request->wantsJson() || $request->is('api/*')) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Producto actualizado correctamente',
-                'data' => $producto
-            ], 200);
-        }
-
-        return redirect('/produc/productos');
-    }
-
-    public function destroy(Request $request, $id)
     {
         $producto = Producto::find($id);
 
         if (!$producto) {
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json(['status' => false, 'message' => 'No encontrado'], 404);
+            }
+            return redirect()->back()->with('error', 'Producto no encontrado');
+        }
+
+        $data = $request->all();
+
+        for ($i = 1; $i <= 3; $i++) {
+            if ($request->hasFile('imagen'.$i)) {
+                if ($producto->{'imagen'.$i} && File::exists(public_path($producto->{'imagen'.$i}))) {
+                    File::delete(public_path($producto->{'imagen'.$i}));
+                }
+
+                $file = $request->file('imagen'.$i);
+                $nombreLimpio = preg_replace('/[^A-Za-z0-9.\-]/', '_', $file->getClientOriginalName());
+                $nombreImagen = time().'_'.$i.'_'.$nombreLimpio;
+                $file->move(public_path('imagenes/productos'), $nombreImagen);
+                $data['imagen'.$i] = 'imagenes/productos/'.$nombreImagen;
+            }
+        }
+
+        $producto->update($data);
+
+        // RESPUESTA DINÁMICA:
+        if ($request->wantsJson() || $request->is('api/*')) {
             return response()->json([
-                'status' => false,
-                'message' => 'Producto no encontrado'
-            ], 404);
+                'status' => true,
+                'data' => $producto
+            ], 200);
+        }
+
+        return redirect()->back()->with('success', 'Producto actualizado');
+    }
+
+    public function destroy($id)
+    {
+        $producto = Producto::find($id);
+
+        if (!$producto) {
+            return response()->json(['status' => false, 'message' => 'No encontrado'], 404);
         }
 
         for ($i = 1; $i <= 3; $i++) {
-            $campo = 'imagen'.$i;
-
-            if ($producto->$campo && File::exists(public_path($producto->$campo))) {
-                File::delete(public_path($producto->$campo));
+            if ($producto->{'imagen'.$i} && File::exists(public_path($producto->{'imagen'.$i}))) {
+                File::delete(public_path($producto->{'imagen'.$i}));
             }
         }
 
         $producto->delete();
 
-        if ($request->wantsJson() || $request->is('api/*')) {
+        // RESPUESTA DINÁMICA:
+        if (request()->wantsJson() || request()->is('api/*')) {
             return response()->json([
                 'status' => true,
-                'message' => 'Producto eliminado correctamente'
+                'message' => 'Producto eliminado'
             ], 200);
         }
 
-        return redirect('/produc/productos');
+        return redirect()->back()->with('success', 'Producto eliminado');
     }
 }
