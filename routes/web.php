@@ -6,6 +6,8 @@ use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\ProductosController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PedidosController;
+
 
 Route::get('/', function () {
     if (session()->has('empleado')) return redirect()->route('inicio');
@@ -48,7 +50,7 @@ Route::middleware(['es_empleado'])->group(function () {
     Route::post('/produc/store', [ProductosController::class, 'store'])->name('productos.store');
     Route::put('/produc/{id}', [ProductosController::class, 'update'])->name('productos.update');
     Route::delete('/produc/{id}', [ProductosController::class, 'destroy'])->name('productos.destroy');
-    Route::view('/pedido/formulario-pedido', '/administradores/formulario-pedido');
+   // Route::view('/pedido/formulario-pedido', '/administradores/formulario-pedido');
 });
 
 Route::middleware(['es_cliente'])->group(function () {
@@ -60,3 +62,10 @@ Route::middleware(['es_cliente'])->group(function () {
 });
 
 
+//NUEVO
+
+Route::get('/pedido/formulario-pedido', function() {
+    $productos = \App\Models\Producto::all();
+    $clientes = \App\Models\Cliente::all();
+    return view('administradores.formulario-pedido', compact('productos', 'clientes'));
+});
