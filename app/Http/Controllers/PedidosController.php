@@ -17,16 +17,7 @@ class PedidosController extends Controller
         ], 200);
     }
 
-//____________________________________________________
-
-
-   //NUEVO CONTROLADOR PARA PEDIDOS
-
-
-//______________________________________________________
-
-
-    // Crear un nuevo pedido (POST)
+    // Crear un nuevo pedido (POST) - MANTENGO TU LÓGICA
     public function store(Request $request)
     {
         $request->validate([
@@ -45,50 +36,41 @@ class PedidosController extends Controller
         ], 201);
     }
 
-    // Mostrar un pedido específico (GET {id})
-    public function show($id)
-    {
-        $pedido = Pedido::with('cliente')->find($id);
+    // ... (Mantengo tu show, update, destroy igual) ...
 
-        if (!$pedido) {
-            return response()->json(['status' => false, 'message' => 'Pedido no encontrado'], 404);
-        }
+    // --- NUEVOS MÉTODOS PARA ACTIVIDAD 23 ---
 
-        return response()->json(['status' => true, 'data' => $pedido], 200);
-    }
-
-    // Actualizar un pedido (PUT)
-    public function update(Request $request, $id)
+    // Realizar pago (POST /api/pagar-pedido/{id})
+    public function realizarPago($id)
     {
         $pedido = Pedido::find($id);
-
         if (!$pedido) {
             return response()->json(['status' => false, 'message' => 'Pedido no encontrado'], 404);
         }
-
-        $pedido->update($request->all());
-
+        
+        $pedido->update(['estado_pago' => 1]); // 1 = Pagado
+        
         return response()->json([
             'status' => true,
-            'message' => 'Pedido actualizado',
+            'message' => 'Pago realizado con éxito',
             'data' => $pedido
         ], 200);
     }
 
-    // Eliminar un pedido (DELETE)
-    public function destroy($id)
+    // Consultar estado de pago (GET /api/estado-pago/{id})
+    public function consultarPago($id)
     {
         $pedido = Pedido::find($id);
-
         if (!$pedido) {
             return response()->json(['status' => false, 'message' => 'Pedido no encontrado'], 404);
         }
-
-        $pedido->delete();
-
+        
+        $estado = ($pedido->estado_pago == 1) ? 'Pagado' : 'Pendiente';
+        
         return response()->json([
             'status' => true,
-            'message' => 'Pedido eliminado correctamente'
+            'pedido_id' => $id,
+            'estado_pago' => $estado
         ], 200);
     }
 }

@@ -10,11 +10,11 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'users',
+            'provider' => 'empleados',
         ],
     ],
     'providers' => [
-        'users' => [
+        'empleados' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],

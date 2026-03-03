@@ -11,25 +11,16 @@ class Pedido extends Model
 
     protected $table = 'pedidos';
     protected $primaryKey = 'id_pedido';
-    
-
-//____________________________________________________
-
-
-   //NUEVO MODELO PARA PEDIDOS
-
-
-//______________________________________________________
-
-
-    // Si no tienes las columnas created_at y updated_at en tu tabla, pon esto en false
     public $timestamps = false;
 
+    // --- CORRECCIÓN AQUÍ ---
     protected $fillable = [
         'id_pedido',
         'id_cliente',
         'fecha_pedido',
-        'total'
+        'total',
+        'direccion',      // Añadido para la Act 23
+        'estado_pago'     // Añadido para la Act 23 (0: pendiente, 1: pagado)
     ];
 
     // Relación: Un pedido pertenece a un cliente

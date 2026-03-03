@@ -88,9 +88,6 @@
             return;
         }
 
-
-//NUEVO
-
         // Datos para la API
         const datosPedido = {
             id_pedido: id_pedido,
@@ -99,21 +96,32 @@
             total: total
         };
 
+        // --- CORRECCIÓN AQUÍ: Recuperar el token del almacenamiento local ---
+        // ESTO ES LO QUE HACE QUE FUNCIONE DESDE LA WEB
+        const token = localStorage.getItem('access_token'); 
+
         try {
             const response = await fetch('/api/pedidos', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    // --- CORRECCIÓN AQUÍ: Enviar el token Bearer ---
+                    'Authorization': `Bearer ${token}` 
                 },
                 body: JSON.stringify(datosPedido)
             });
 
             const result = await response.json();
 
-            if (result.status) {
+            if (response.ok && result.status) {
                 Swal.fire('¡Éxito!', 'Pedido registrado en la base de datos', 'success');
                 // Opcional: limpiar formulario o redireccionar
+                // document.getElementById('id_pedido').value = '';
+                // contador = 0;
+                // totalGlobal = 0;
+                // document.getElementById('contador').textContent = contador;
+                // document.getElementById('total_acumulado').textContent = totalGlobal.toFixed(2);
             } else {
                 Swal.fire('Error', 'No se pudo guardar: ' + JSON.stringify(result.message), 'error');
             }

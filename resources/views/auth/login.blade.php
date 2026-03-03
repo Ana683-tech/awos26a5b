@@ -25,6 +25,7 @@
             <span class="block sm:inline">{{ session('status') }}</span>
         </div>
         @endif
+        
 
         <form action="{{ route('login.validar') }}" method="POST">
             @csrf

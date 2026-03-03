@@ -96,6 +96,7 @@ class ProductosController extends Controller
         ], 200);
     }
 
+   // ... mismo código anterior hasta el update ...
     public function update(Request $request, $id)
     {
         $producto = Producto::find($id);
@@ -125,8 +126,14 @@ class ProductosController extends Controller
 
         $producto->update($data);
 
-        // RESPUESTA DINÁMICA:
+        // CORRECCIÓN: Devolver URLs completas en la respuesta API
         if ($request->wantsJson() || $request->is('api/*')) {
+            for ($i = 1; $i <= 3; $i++) {
+                $campo = 'imagen'.$i;
+                if ($producto->$campo) {
+                    $producto->$campo = asset($producto->$campo);
+                }
+            }
             return response()->json([
                 'status' => true,
                 'data' => $producto
@@ -135,6 +142,7 @@ class ProductosController extends Controller
 
         return redirect()->back()->with('success', 'Producto actualizado');
     }
+// ... resto del código igual ...
 
     public function destroy($id)
     {
