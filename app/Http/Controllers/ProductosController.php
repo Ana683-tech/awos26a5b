@@ -35,8 +35,7 @@ class ProductosController extends Controller
             ], 200);
         }
 
-        return view('administradores.productos', compact('productos'));
-    }
+        return view('administradores.productos', compact('productos'));    }
 
     public function store(Request $request)
     {

@@ -64,8 +64,21 @@ Route::middleware(['es_cliente'])->group(function () {
 
 //NUEVO
 
-Route::get('/pedido/formulario-pedido', function() {
-    $productos = \App\Models\Producto::all();
-    $clientes = \App\Models\Cliente::all();
-    return view('administradores.formulario-pedido', compact('productos', 'clientes'));
-});
+// --- RUTAS DE PEDIDOS ---
+
+// 1. Vista para crear el pedido (Formulario)
+Route::get('/pedido/formulario-pedido', [PedidosController::class, 'create'])->name('pedidos.create');
+
+// 2. Vista para ver el listado de todos los pedidos (Gestión)
+Route::get('/pedidos/listado', [PedidosController::class, 'index'])->name('pedidos.index');
+
+// 3. API para guardar el pedido (La que llama tu JavaScript)
+Route::post('/api/pedidos', [PedidosController::class, 'store']);
+
+// 4. API para ver el detalle de un pedido (Ticket)
+Route::get('/api/pedidos/{id}', [PedidosController::class, 'show']);
+
+// 5. Ruta para eliminar/cancelar pedido
+Route::delete('/api/pedidos/{id}', [PedidosController::class, 'destroy']);
+
+
