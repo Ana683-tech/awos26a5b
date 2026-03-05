@@ -43,7 +43,7 @@
                 </div>
 
                 <div class="w-full">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">
+                    <label class="block mb-2 text-sm font-medium text-gray-869">
                         Correo
                     </label>
                     <input type="email" name="correo" required

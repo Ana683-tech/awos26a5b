@@ -24,7 +24,7 @@ class GoogleController extends Controller
             // Limpiamos y convertimos a minúsculas para evitar errores de escritura
             $email = strtolower(trim($googleUser->email));
 
-            // 1. PRIORIDAD: ¿Este correo pertenece a un EMPLEADO?
+            
             // Buscamos en la tabla empleados ignorando espacios y mayúsculas
             $empleado = Empleado::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
 

@@ -2,27 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-// 1. IMPORTA EL TRAIT DE SANCTUM
-use Laravel\Sanctum\HasApiTokens; 
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens; // <--- DEBE SER SANCTUM
+use Illuminate\Notifications\Notifiable;
 
-class Cliente extends Model
+class Cliente extends Authenticatable 
 {
-    // 2. USA EL TRAIT AQUÍ
-    use HasApiTokens; 
+    use HasApiTokens, Notifiable;
 
     protected $table = 'clientes';
     protected $primaryKey = 'id_cliente';
     public $timestamps = false;
     
     protected $fillable = [
-        'nombre',
-        'apellidos',
-        'telefono',
-        'email',
-        'usuario',
-        'contrasena',
-        'imagen',
-        'estado'
+        'nombre', 'apellidos', 'telefono', 'email', 
+        'usuario', 'contrasena', 'imagen', 'estado'
     ];
+
+    protected $hidden = ['contrasena'];
+
+    public function getAuthPassword() {
+        return $this->contrasena;
+    }
 }

@@ -14,7 +14,10 @@ Route::post('/login', [ApiAuthController::class, 'login']);
 // --- RUTAS PROTEGIDAS POR TOKEN (SANCTUM) ---
 Route::middleware('auth:sanctum')->group(function () {
     
+    // Auth & Seguridad
     Route::post('/logout', [ApiAuthController::class, 'logout']);
+    // ESTA ES LA RUTA QUE DEBES USAR EN POSTMAN: /api/change-password
+    Route::post('/change-password', [ApiAuthController::class, 'changePassword']);
 
     // --- RUTAS DE ADMINISTRADORES (EMPLEADOS) ---
     Route::get('/administradores', [EmpleadosController::class, 'index']);      
@@ -38,11 +41,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/clientes/{id}', [ClientesController::class, 'destroy']); 
 
     // --- RUTAS DE PEDIDOS (CRUD COMPLETO) ---
-    Route::get('/pedidos', [PedidosController::class, 'index']);        // Listar
-    Route::post('/pedidos', [PedidosController::class, 'store']);       // Crear
-    Route::get('/pedidos/{id}', [PedidosController::class, 'show']);     // Ver detalle
-    Route::put('/pedidos/{id}', [PedidosController::class, 'update']);  // Editar (NUEVO)
-    Route::delete('/pedidos/{id}', [PedidosController::class, 'destroy']); // Eliminar
-    Route::get('clientes/{idCliente}/pedidos', [App\Http\Controllers\PedidosController::class, 'pedidosPorCliente']);
+    Route::get('/pedidos', [PedidosController::class, 'index']);
+    Route::post('/pedidos', [PedidosController::class, 'store']);
+    Route::get('/pedidos/{id}', [PedidosController::class, 'show']);
+    Route::put('/pedidos/{id}', [PedidosController::class, 'update']);
+    Route::delete('/pedidos/{id}', [PedidosController::class, 'destroy']); 
+    Route::get('clientes/{idCliente}/pedidos', [PedidosController::class, 'pedidosPorCliente']);
     
 });
